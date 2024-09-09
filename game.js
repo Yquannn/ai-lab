@@ -6,10 +6,12 @@ function preload() {
   });
 
   // Load the actions sprite sheet
-  this.load.spritesheet('actions', './Cute_Fantasy_Free/Player/Player_Actions.png', {
-    frameWidth: 32,
-    frameHeight: 32,
-  });
+  // this.load.spritesheet('actions', './Cute_Fantasy_Free/Player/Player_Actions.png', {
+  //   frameWidth: 32,
+  //   frameHeight: 32,  
+  // });
+
+  this.load.spritesheet('actions', './Cute_Fantasy_Free/Player/Player_Actions.png', { frameWidth: 32, frameHeight: 32 })
 
   // Load the new cutting animation sprite sheet
   this.load.spritesheet('newCutting', './Cute_Fantasy_Free/Player/Player_Actions.png', {
@@ -22,6 +24,8 @@ function preload() {
   this.load.image('tree1', './asset/spr_tree1.png');
   this.load.image('tree2', './asset/spr_tree2.png');
   this.load.image('tree3', './asset/spr_tree3.png');
+
+  this.load.image('water_tile', './asset/Water_Tile.png')
 
   this.load.spritesheet('campfire', './asset/Animated Campfire/spr_campfire_starting.png', {
     frameWidth: 64,
@@ -51,25 +55,12 @@ function createAnimations() {
     });
   });
 
-  this.anims.create({
-    key: 'chopping',
-    frames: this.anims.generateFrameNumbers('actions', { start: 0, end: 5 }),
-    frameRate: 10,
-    repeat: -1,
-  });
-
-  this.anims.create({
-    key: 'chopping2',
-    frames: this.anims.generateFrameNumbers('actions', { start: 6, end: 10 }),
-    frameRate: 10,
-    repeat: -1,
-  });
 
 
 
   this.anims.create({
     key: 'new-chopping',
-    frames: this.anims.generateFrameNumbers('newCutting', { start: 0, end: 10 }), // Adjust start and end based on actual frames
+    frames: this.anims.generateFrameNumbers('actions', { start: 2, end: 10 }), // Adjust start and end based on actual frames
     frameRate: 10,
     repeat: -1,
   });
@@ -82,7 +73,7 @@ function createHouse() {
   this.house = this.add
     .sprite(this.houseLocationX, this.houseLocationY, 'house')
     .setOrigin(0.5, 0.5)
-    .setScale(1.5);
+    .setScale(1.2);
 }
 
 
@@ -93,12 +84,12 @@ function createCampfire() {
   this.campfire = this.add
     .sprite(this.campLocationX, this.campLocationY, 'campfire')
     .setOrigin(0.5, 0.5)
-    .setScale(1.5)
+    .setScale(.8)
     .anims.play('burning');
 }
 function createTrees() {
   this.trees = [];
-  const maxTrees = 5;
+  const maxTrees = 13;
   const treeMargin = 50;
   const treeImages = ['tree', 'tree1', 'tree2', 'tree3'];
 
@@ -116,7 +107,7 @@ function createTrees() {
     } while (!isPositionValid);
 
     const randomTreeImage = Phaser.Utils.Array.GetRandom(treeImages);
-    const tree = this.add.image(randomX, randomY, randomTreeImage).setScale(1.5).setDepth(1);
+    const tree = this.add.image(randomX, randomY, randomTreeImage).setScale(1).setDepth(1);
     this.trees.push(tree);
   }
 }
@@ -173,7 +164,7 @@ function handlePlayerMovement() {
     }
   });
 
-  const speed = 100; // Adjust speed as needed
+let speed = 100; // Adjust speed as needed
 
   // Check if player is in the process of returning to the campfire
   if (this.returningToCampfire) {
@@ -218,9 +209,9 @@ function moveToStorageRoom(speed) {
   const normalizedX = directionX / magnitude;
   const normalizedY = directionY / magnitude;
 
-  this.player.setVelocity(normalizedX * speed, normalizedY * speed);
-
+  this.player.setVelocity(normalizedX * 30, normalizedY * 30);
   playWalkAnimation.call(this, normalizedX, normalizedY);
+
 
 }
 
@@ -324,28 +315,48 @@ function respawnTree() {
     } while (!isPositionValid);
 
     const randomTreeImage = Phaser.Utils.Array.GetRandom(treeImages);
-    const newTree = this.add.image(randomX, randomY, randomTreeImage).setScale(1.5).setDepth(1);
+    const newTree = this.add.image(randomX, randomY, randomTreeImage).setScale(1).setDepth(1);
     this.trees.push(newTree);
   });
 }
 
-function create() {
-  this.land = this.add.tileSprite(320, 180, 1000, 1000, 'land');
 
+function create() {
+  // Add background and set scale
+  this.land = this.add.tileSprite(320, 180, 1500, 1000, 'land');
+  this.land.setScale(0.5);
+
+  // Create animations, campfire, house, trees, and UI
   createAnimations.call(this);
   createCampfire.call(this);
-	createHouse.call(this);
-
+  createHouse.call(this);
   createTrees.call(this);
   createUI.call(this);
 
-
   this.player = this.physics.add.sprite(100, 100, 'player').setDepth(2);
-  this.timerEvent = null;
+
+  // Adjust the player's bounding box
+  this.player.setSize(16, 16); // Set the width and height of the bounding box
+  this.player.setOffset(6, 2); // Adjust the offset to align the bounding box with the sprite
+
+  // Create and configure the water tile
+  const obstacles = this.physics.add.staticGroup();
+  const waterTile = obstacles.create(140, 100, 'water_tile').setScale(0.7);
+
+  // Adjust the water tile's bounding box
+  waterTile.body.setSize(32, 80);
+  waterTile.body.setOffset(0, 0); // Adjust the offset if necessary
+
+  // Add collider between player and obstacles
+  this.physics.add.collider(this.player, obstacles);
 }
+
+
+
 
 function update() {
   handlePlayerMovement.call(this);
+
 }
 
 const config = {
@@ -356,8 +367,9 @@ const config = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { y: 0 },
-      debug: false,
+      gravity: { y: 100 },
+      enableBody: true,
+      debug: true
     },
   },
   scene: {
@@ -365,8 +377,7 @@ const config = {
     create,
     update,
   },
-	scale: {
-    // mode: Phaser.Scale.FIT,
+  scale: {
     autoCenter: Phaser.Scale.CENTER_BOTH,
   },
 };
