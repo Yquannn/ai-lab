@@ -6,12 +6,10 @@ function preload() {
   });
 
   // Load the actions sprite sheet
-  // this.load.spritesheet('actions', './Cute_Fantasy_Free/Player/Player_Actions.png', {
-  //   frameWidth: 32,
-  //   frameHeight: 32,  
-  // });
-
-  this.load.spritesheet('actions', './Cute_Fantasy_Free/Player/Player_Actions.png', { frameWidth: 32, frameHeight: 32 })
+  this.load.spritesheet('actions', './Cute_Fantasy_Free/Player/Player_Actions.png', {
+    frameWidth: 32,
+    frameHeight: 32,
+  });
 
   // Load the new cutting animation sprite sheet
   this.load.spritesheet('newCutting', './Cute_Fantasy_Free/Player/Player_Actions.png', {
@@ -19,19 +17,22 @@ function preload() {
     frameHeight: 64, // Adjust based on the actual frame height
   });
 
+  // Load images
   this.load.image('land', './Cute_Fantasy_Free/Tiles/FarmLand_Tile.png');
   this.load.image('tree', './Cute_Fantasy_Free/Outdoor decoration/Oak_Tree.png');
   this.load.image('tree1', './asset/spr_tree1.png');
   this.load.image('tree2', './asset/spr_tree2.png');
   this.load.image('tree3', './asset/spr_tree3.png');
+  this.load.image('water_tile', './asset/Water_Tile.png');
+  this.load.image('wood', './asset/wood.png')
 
-  this.load.image('water_tile', './asset/Water_Tile.png')
 
+  // Load sprite sheets
   this.load.spritesheet('campfire', './asset/Animated Campfire/spr_campfire_starting.png', {
     frameWidth: 64,
     frameHeight: 64,
   });
-	this.load.spritesheet('house', './asset/pixel-art-house-removebg-preview (2).png', {
+  this.load.spritesheet('house', './asset/pixel-art-house-removebg-preview (2).png', {
     frameWidth: 128,
     frameHeight: 128,
   });
@@ -55,15 +56,20 @@ function createAnimations() {
     });
   });
 
-
-
-
   this.anims.create({
     key: 'new-chopping',
     frames: this.anims.generateFrameNumbers('actions', { start: 2, end: 10 }), // Adjust start and end based on actual frames
     frameRate: 10,
     repeat: -1,
   });
+
+  // // Create the tree animation
+  // this.anims.create({
+  //   key: "animsTree",
+  //   frames: this.anims.generateFrameNumbers("tree4", { frames: [0, 1, 2, 3] }),
+  //   frameRate: 16,
+  //   repeat: -1,
+  // });
 }
 
 function createHouse() {
@@ -76,7 +82,6 @@ function createHouse() {
     .setScale(1.2);
 }
 
-
 function createCampfire() {
   this.campLocationX = 70;
   this.campLocationY = 300;
@@ -84,14 +89,16 @@ function createCampfire() {
   this.campfire = this.add
     .sprite(this.campLocationX, this.campLocationY, 'campfire')
     .setOrigin(0.5, 0.5)
-    .setScale(.8)
+    .setScale(0.8)
     .anims.play('burning');
 }
+
 function createTrees() {
   this.trees = [];
   const maxTrees = 13;
   const treeMargin = 50;
   const treeImages = ['tree', 'tree1', 'tree2', 'tree3'];
+  const log = []; // Array to store tree animations
 
   for (let i = 0; i < maxTrees; i++) {
     let randomX, randomY, isPositionValid;
@@ -109,8 +116,14 @@ function createTrees() {
     const randomTreeImage = Phaser.Utils.Array.GetRandom(treeImages);
     const tree = this.add.image(randomX, randomY, randomTreeImage).setScale(1).setDepth(1);
     this.trees.push(tree);
+
+    // Add animated tree
+    const wood = this.add.sprite(randomX, randomY, 'wood').setScale(1);
+    log.push(wood); // Store animated trees in an array
   }
 }
+
+
 
 
 function createUI() {
@@ -147,6 +160,7 @@ function createUI() {
 
 
 }
+
 function handlePlayerMovement() {
   const cursors = this.input.keyboard.createCursorKeys();
   let isPlayerMoving = false;
@@ -164,9 +178,11 @@ function handlePlayerMovement() {
     }
   });
 
-let speed = 100; // Adjust speed as needed
+  let speed = 100; // Adjust speed as needed
 
-  // Check if player is in the process of returning to the campfire
+  // Update the path graphics
+  this.pathGraphics.clear(); // Clear previous path
+
   if (this.returningToCampfire) {
     moveToStorageRoom.call(this, speed);
 
@@ -175,15 +191,20 @@ let speed = 100; // Adjust speed as needed
       this.returningToCampfire = false;
       this.collectedLog = 0; // Now reset the log count after reaching the campfire
       this.cutTimerText.setText('Logs dropped off!');
-			this.collectedLogText.setText(`Collected logs: ${this.collectedLog}`)
-			this.logCollectable += 1
-			this.logCollectableText.setText(`Dropped logs: ${this.logCollectable}`)
-
+      this.collectedLogText.setText(`Collected logs: ${this.collectedLog}`);
+      this.logCollectable += 1;
+      this.logCollectableText.setText(`Dropped logs: ${this.logCollectable}`);
     }
+    // Draw path to the house
+    this.pathGraphics.lineStyle(2, 0xff0000); // Red line with 2px thickness
+    this.pathGraphics.lineBetween(this.player.x, this.player.y, this.houseLocationX, this.houseLocationY);
   } else if (this.stamina === 0) {
     // If the player has no stamina, move to the campfire to rest
     this.cutTimerText.setText('Not enough stamina. WoodCutter Resting...');
     moveToCampfire.call(this, speed);
+    // Draw path to the campfire
+    this.pathGraphics.lineStyle(2, 0xff0000); // Red line with 2px thickness
+    this.pathGraphics.lineBetween(this.player.x, this.player.y, this.campLocationX, this.campLocationY);
   } else if (this.collectedLog === 3) {
     // If the player has collected 3 logs, start returning to the campfire
     this.cutTimerText.setText('Returning to house log to drop logs...');
@@ -197,8 +218,12 @@ let speed = 100; // Adjust speed as needed
     if (minDistance < cutDistance) {
       startChoppingTree.call(this, nearestTree);
     }
+    // Draw path to the nearest tree
+    this.pathGraphics.lineStyle(2, 0x00ff00); // Green line with 2px thickness
+    this.pathGraphics.lineBetween(this.player.x, this.player.y, nearestTree.x, nearestTree.y);
   }
 }
+
 
 
 
@@ -320,13 +345,25 @@ function respawnTree() {
   });
 }
 
+function createObstacle(){
+    // Create and configure the water tile
+  const obstacles = this.physics.add.staticGroup();
+  this.waterTile = obstacles.create(140, 50, 'water_tile').setScale(0.7);
+
+  // Adjust the water tile's bounding box
+  this.waterTile.body.setSize(32, 65);
+  this.waterTile.body.setOffset(9, 15); // Adjust the offset if necessary
+
+  // Add collider between player and obstacles
+  this.physics.add.collider(this.player, obstacles);
+  this.pathGraphics = this.add.graphics();
+}
+
 
 function create() {
-  // Add background and set scale
   this.land = this.add.tileSprite(320, 180, 1500, 1000, 'land');
   this.land.setScale(0.5);
 
-  // Create animations, campfire, house, trees, and UI
   createAnimations.call(this);
   createCampfire.call(this);
   createHouse.call(this);
@@ -336,27 +373,24 @@ function create() {
   this.player = this.physics.add.sprite(100, 100, 'player').setDepth(2);
 
   // Adjust the player's bounding box
-  this.player.setSize(16, 16); // Set the width and height of the bounding box
-  this.player.setOffset(6, 2); // Adjust the offset to align the bounding box with the sprite
+  this.player.setSize(16, 20); // Set the width and height of the bounding box
+  this.player.setOffset(8, 5); // Adjust the offset to align the bounding box with the sprite
 
-  // Create and configure the water tile
-  const obstacles = this.physics.add.staticGroup();
-  const waterTile = obstacles.create(140, 100, 'water_tile').setScale(0.7);
-
-  // Adjust the water tile's bounding box
-  waterTile.body.setSize(32, 80);
-  waterTile.body.setOffset(0, 0); // Adjust the offset if necessary
-
-  // Add collider between player and obstacles
-  this.physics.add.collider(this.player, obstacles);
+  createObstacle.call(this)
+  
 }
-
-
 
 
 function update() {
   handlePlayerMovement.call(this);
 
+  // Check distance between player and waterTile
+  const distanceToWaterTile = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.waterTile.x, this.waterTile.y);
+  const detectionRadius = 25; // Define how close the player needs to be to trigger the message
+
+  if (distanceToWaterTile < detectionRadius) {
+    console.log('Obstacle detected: water_tile');
+  }
 }
 
 const config = {
