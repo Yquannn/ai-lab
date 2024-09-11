@@ -138,21 +138,28 @@ function createUI() {
   });
 
   this.stamina = 20;
-  this.staminaText = this.add.text(this.cameras.main.width - 80, 16, `Stamina: ${this.stamina}`, {
+  this.staminaText = this.add.text(this.cameras.main.width - 180, 16, `Stamina: ${this.stamina}`, {
     fontSize: '16',
     fill: '#fff',
     align: 'right',
   });
 
 	this.collectedLog = 0
-	this.collectedLogText =  this.add.text(this.cameras.main.width - 200, 16, `Collected Logs : ${this.collectedLog}`, {
+	this.collectedLogText =  this.add.text(this.cameras.main.width - 300, 16, `Collected Logs : ${this.collectedLog}`, {
     fontSize: '16',
     fill: '#fff',
     align: 'right',
   });
 
 	this.logCollectable = 0
-	this.logCollectableText =  this.add.text(this.cameras.main.width - 300, 16, `Dropped logs: ${this.logCollectable}`, {
+	this.logCollectableText =  this.add.text(this.cameras.main.width - 400, 16, `Dropped logs: ${this.logCollectable}`, {
+    fontSize: '16',
+    fill: '#fff',
+    align: 'right',
+  });
+
+  this.level = 1.9
+	this.levelText =  this.add.text(this.cameras.main.width - 100, 16, `Level: ${this.level}`, {
     fontSize: '16',
     fill: '#fff',
     align: 'right',
@@ -186,6 +193,8 @@ function handlePlayerMovement() {
   if (this.returningToCampfire) {
     moveToStorageRoom.call(this, speed);
 
+
+
     const distanceToCampfire = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.houseLocationX, this.houseLocationY);
     if (distanceToCampfire < 1) { // Player has reached the campfire
       this.returningToCampfire = false;
@@ -193,6 +202,8 @@ function handlePlayerMovement() {
       this.cutTimerText.setText('Logs dropped off!');
       this.collectedLogText.setText(`Collected logs: ${this.collectedLog}`);
       this.logCollectable += 1;
+      this.level += .1
+      this.levelText.setText(`Level: ${this.level.toFixed(1)}`);
       this.logCollectableText.setText(`Dropped logs: ${this.logCollectable}`);
     }
     // Draw path to the house
@@ -222,6 +233,20 @@ function handlePlayerMovement() {
     this.pathGraphics.lineStyle(2, 0x00ff00); // Green line with 2px thickness
     this.pathGraphics.lineBetween(this.player.x, this.player.y, nearestTree.x, nearestTree.y);
   }
+
+  // Ensure `this.waterTile` is initialized and refers to the water tile object
+if (this.waterTile) {
+  // Check distance between player and waterTile
+  const distanceToWaterTile = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.waterTile.x, this.waterTile.y);
+  const detectionRadius = 35; // Define how close the player needs to be to trigger the message
+
+  if (distanceToWaterTile < detectionRadius) {
+    console.log('Obstacle detected: water_tile');
+  }
+} else {
+  console.error('Water tile is not defined');
+}
+
 }
 
 
@@ -384,13 +409,6 @@ function create() {
 function update() {
   handlePlayerMovement.call(this);
 
-  // Check distance between player and waterTile
-  const distanceToWaterTile = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.waterTile.x, this.waterTile.y);
-  const detectionRadius = 25; // Define how close the player needs to be to trigger the message
-
-  if (distanceToWaterTile < detectionRadius) {
-    console.log('Obstacle detected: water_tile');
-  }
 }
 
 const config = {
