@@ -138,6 +138,7 @@ function createUI() {
   });
 
   this.stamina = 20;
+  this.defaultStamina = 100
   this.staminaText = this.add.text(this.cameras.main.width - 180, 16, `Stamina: ${this.stamina}`, {
     fontSize: '16',
     fill: '#fff',
@@ -301,7 +302,7 @@ function startChoppingTree(nearestTree) {
     this.player.anims.play('new-chopping', true); // Play the new chopping animation
 
     if (!this.timerEvent) {
-      let countdown = 5;
+      let countdown = 8;
       this.cutTimerText.setText(`Cutting: ${countdown} seconds`);
 
       this.timerEvent = this.time.addEvent({
@@ -311,6 +312,8 @@ function startChoppingTree(nearestTree) {
           this.cutTimerText.setText(`Cutting: ${countdown} seconds`);
           if (countdown <= 0) {
             completeChoppingTree.call(this, nearestTree);
+
+
           }
         },
         callbackScope: this,
@@ -328,24 +331,36 @@ function completeChoppingTree(nearestTree) {
   this.player.anims.stop();
   this.trees = this.trees.filter((t) => t !== nearestTree);
 
+  // Reduce stamina by 10 after cutting a tree
   this.stamina -= 10;
-  this.stamina = Phaser.Math.Clamp(this.stamina, 0, 100);
+  this.stamina = Phaser.Math.Clamp(this.stamina, 0, this.defaultStamina); // Adjust the clamp to use defaultStamina
   this.staminaText.setText(`Stamina: ${this.stamina}`);
 
-	this.collectedLog += 1
-	this.collectedLogText.setText(`Collected log: ${this.collectedLog}`);
+  this.collectedLog += 1;
+  this.collectedLogText.setText(`Collected log: ${this.collectedLog}`);
 
+  // Increase the level by 0.1
+  this.level += 0.10;
+  this.levelText.setText(`Level: ${this.level.toFixed(1)}`);
 
   if (this.stamina === 0) {
     this.time.delayedCall(10000, () => {
-      this.stamina = 100;
-      this.staminaText.setText(`Stamina: ${this.stamina}`);
+      if (this.level.toFixed(0) >= 2) {
+        this.defaultStamina += 10; 
+      }
+
+      this.stamina = this.defaultStamina;
+
+      console.log(`Restored stamina: ${this.stamina}`);
+      this.staminaText.setText(`Stamina: ${this.stamina.toFixed(0)}`);
       this.playerRest.setText('');
     });
   }
 
+  // Respawn the tree after it's cut down
   respawnTree.call(this);
 }
+
 function respawnTree() {
   const treeRespawnDelay = 15000; // 15 seconds
   const treeMargin = 50;
